@@ -1,4 +1,5 @@
-# manageFacebook Version 1.0.0 #
+# manageFacebook #
+* version: 1.0.0 *
 
 I want to create simple Facebook class which allows to manage Facebook account from console.
 Code is simulating *human being* to avoid banning.
