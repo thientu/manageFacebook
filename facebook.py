@@ -9,13 +9,15 @@ import config, json
 
 
 
-"""
- Facebook class
-    @author: Mateusz Warzyński
-    @version: 1.0.0
-"""
-
 class Facebook:
+    
+    """
+     Facebook class
+        @author: Mateusz Warzyński
+        @version: 1.0.0
+    """
+    
+    """ Define variables """
     
     # control variables
     logged = False
@@ -25,7 +27,7 @@ class Facebook:
     # define cookieJar
     cj = cookielib.CookieJar()
     
-    # Headers to authorize 
+    # Headers to execute actions
     headers = dict()
     headers['accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
     headers['accept-charset'] = 'ISO-8859-2,utf-8;q=0.7,*;q=0.3'
@@ -53,13 +55,13 @@ class Facebook:
           @return: null
         """
     
-        # Init config library
+        # init config library
         self.config = config.pantheraConfig()
         
-        # Get some data from json config
+        # get some data from json config
         self.user = self.config.getKey(username, json.loads('{ "username": "'+username+'"}'))
         
-        # Login to Facebook / Check if already logged
+        # login to Facebook / check if already logged
         self.login(password)
     
     
@@ -67,7 +69,7 @@ class Facebook:
     def isLogged(self):
     
         """
-         Check if user is logged to Facebook (hac active session)
+         Check if user is logged to Facebook (has active session)
           @author: Mateusz Warzyński
           @return: bool
         """
