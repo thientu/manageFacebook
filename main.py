@@ -8,13 +8,6 @@ from facebook import Facebook
 # create user object
 # f = Facebook("username/email", "password")
 
-# Aleksandra
-# f = Facebook("john.garcia-cvv8ney@yopmail.com", "pbv5FzZuhx")
-
-# Jakub
-f = Facebook("janusz.kowalski73@onet.pl")
-
-
 
 """ List of available functionality """
 # f.isLogged() # return bool 

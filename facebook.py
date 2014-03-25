@@ -257,7 +257,7 @@ class Facebook:
     
     def cleanTimeline(self):
         domain = "m.facebook.com"
-        url = "/janusz.kowalski.73997861"
+        url = "/"+self.user['id']
         response = self.getContent(domain, url)
         
         try:
