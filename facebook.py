@@ -6,6 +6,7 @@ import urllib2, cookielib
 import httplib, time, socket
 from BeautifulSoup import BeautifulSoup
 import config, json
+import re
 
 
 
@@ -37,12 +38,12 @@ class Facebook:
     headers['method'] = 'GET'      
     headers['scheme'] = 'https'
     headers['version'] = 'HTTP/1.1'
-    headers['user-agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36'
+    headers['user-agent'] = 'Mozilla/5.0 (X11; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0'
     
     # Headers to login
     h = [('Referer', 'http://login.facebook.com/login.php'),
                     ('Content-Type', 'application/x-www-form-urlencoded'),
-                    ('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36')]
+                    ('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0')]
     
     
     
@@ -171,6 +172,7 @@ class Facebook:
             # set user session variables
             self.user['password'] = str(password)
             self.user['cookie'] = str(wholeCookie)
+            self.user['id'] = str(self.getID())
             
             # save them to config
             self.saveUserSession()
@@ -181,6 +183,138 @@ class Facebook:
         else:
             return False
     
+    
+    
+    def getID(self):
+    
+        response = self.getContent('m.facebook.com', "/home.php")
+        soup = BeautifulSoup(response.read())
+        string = soup.prettify()
+
+        user = re.findall('"owner":(.*),"_pmc_":', string)
+
+        return user[0]
+        
+    
+    
+    def deleteActivity(self, link=''):
+    
+        if (link == ''):
+            url = "/"+self.user['id']+"/allactivity?refid=17"
+            self.done = []
+        else:
+            url = link
+    
+        domain = "m.facebook.com"
+        response = self.getContent(domain, url)
+    
+        try:
+            soup = BeautifulSoup(response.read())
+        except:
+            return False
+        
+        firstItems = soup.findAll('a', { 'class' : 'sec' })
+        
+        for item in firstItems:
+            
+            if ('action=remove_content' in str(item['href'])):
+                self.getContent(domain, item['href'])
+                print item['href']
+            
+            if ('action=remove_comment' in str(item['href'])):
+                self.getContent(domain, item['href'])
+                print item['href']
+            
+            if ('action=unlike' in str(item['href'])):
+                self.getContent(domain, item['href'])
+                print item['href']
+            
+            if ('action=hide' in str(item['href'])):
+                self.getContent(domain, item['href'])
+                print item['href']
+        
+        sectionContents = soup.findAll('a')
+        
+        for section in sectionContents:
+            
+            try:
+            
+                if ('&sectionLoadingID=m_timeline_loading_div_' in str(section['href'])):
+                    
+                    user = re.findall('&sectionID=(.*)', str(section['href']))
+
+                    if str(user[0]) in self.done:
+                        continue
+                    else:
+                        self.done.append(str(user[0]))
+                   
+                    print section['href']
+                    self.deleteActivity(section['href'])
+            except:
+                print 'error'
+    
+    
+    
+    def cleanTimeline(self):
+        domain = "m.facebook.com"
+        url = "/janusz.kowalski.73997861"
+        response = self.getContent(domain, url)
+        
+        try:
+            soup = BeautifulSoup(response.read())
+        except:
+            return False
+        
+        items = soup.findAll('a')
+        
+        for item in items:
+            
+            if ('timeline/remove/confirm' in item['href']):
+                self.deleteFromTimeline(str(item['href']))
+        
+    
+    
+    def deleteFromTimeline(self, link):
+
+        domain = "m.facebook.com"
+        response = self.getContent(domain, link)
+        
+        try:
+            soup = BeautifulSoup(response.read())
+        except:
+            return False
+            
+        deletes = soup.findAll('a', { 'class' : 'btn btnN' })
+        
+        for delete in deletes:
+        
+            print delete['href']
+            self.getContent(domain, delete['href'])
+            return True
+        
+        hides = soup.findAll('a', { 'class' : 'btn btnC' })
+        
+        for hide in hides:
+            
+            print hide['href']
+            self.getContent(domain, hide['href'])
+            return True
+        
+
+    
+    
+    def getDTSG(self):
+    
+        # get form to post a new content
+        response = self.getContent('m.facebook.com', '/home.php')
+        soup = BeautifulSoup(response.read())
+        
+        # parse html, get token
+        token = soup.findAll('input', { "name" : "fb_dtsg" })
+        
+        # token[0]['value']
+        
+        return "AQAlPET1"
     
     
     def getContent(self, domain, url):
