@@ -198,6 +198,13 @@ class Facebook:
     
     
     def deleteActivity(self, link=''):
+        
+        """
+         Delete everything what is in activity log (except friends)
+          @author: Mateusz Warzyński
+          @param: link (string), link to get contents from other period of time
+          @return: string
+        """
     
         if (link == ''):
             url = "/"+self.user['id']+"/allactivity?refid=17"
@@ -256,6 +263,13 @@ class Facebook:
     
     
     def cleanTimeline(self):
+        
+        """
+         Clean your timeline, delete posts / messages about you
+          @author: Mateusz Warzyński
+          @return: null
+        """
+        
         domain = "m.facebook.com"
         url = "/"+self.user['id']
         response = self.getContent(domain, url)
@@ -275,6 +289,12 @@ class Facebook:
     
     
     def deleteFromTimeline(self, link):
+        
+        """
+         Delete posts from timeline
+          @author: Mateusz Warzyński
+          @return: bool
+        """
 
         domain = "m.facebook.com"
         response = self.getContent(domain, link)
@@ -302,8 +322,13 @@ class Facebook:
         
 
     
-    
     def getDTSG(self):
+        
+        """
+         Get fb_dtsg string from share form
+          @author: Mateusz Warzyński
+          @return: string
+        """
     
         # get form to post a new content
         response = self.getContent('m.facebook.com', '/home.php')
@@ -312,9 +337,8 @@ class Facebook:
         # parse html, get token
         token = soup.findAll('input', { "name" : "fb_dtsg" })
         
-        # token[0]['value']
-        
-        return "AQAlPET1"
+        return token[0]['value']
+    
     
     
     def getContent(self, domain, url):
@@ -350,6 +374,7 @@ class Facebook:
          Check if response got via httplib is correct
           @return: True
         """
+        
         # TODO: implement checkResponse function (httplib)
         return True
     
