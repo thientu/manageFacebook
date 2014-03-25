@@ -40,4 +40,12 @@ f.sendFriendRequests(amount_of_requests_to_send=5)
 
 """ Poke back id1 and id2 (if emty poke back everyone). Also send them message 'hi'. """
 f.pokeBack(toPoke=['id1', 'id2'], message='hi')
+
+""" Delete everything from your timeline """
+while True:
+    f.cleanTimeline()
+    
+""" Delete ~90% of your activity """
+while True:
+    f.deleteActivity()
 ```
