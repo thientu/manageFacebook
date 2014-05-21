@@ -3,11 +3,9 @@
 
 # import libraries
 import requests
-import httplib, time, socket
+import time
 from BeautifulSoup import BeautifulSoup
 import config, json
-import re
-
 
 
 class Facebook:
@@ -25,7 +23,20 @@ class Facebook:
     config = None
     session = None
     user = {}
-    headers = {}
+    headers = {
+            "host": "m.facebook.com",
+            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "accept-encoding": "gzip,deflate,sdch",
+            "accept-language": "pl-PL,pl;q=0.8,en-US;q=0.6,en;q=0.4",
+            "cache-control": "max-age=0",
+            "content-length": "256",
+            "content-type": "application/x-www-form-urlencoded",
+            "cookie": "reg_fb_gate=https%3A%2F%2Fwww.facebook.com%2F; datr=fCF9U0svgb81q-QjT57Axku7; m_ts=1400709968; reg_fb_ref=https%3A%2F%2Fm.facebook.com%2F; m_pixel_ratio=1",
+            "dnt": "1",
+            "origin": "https://m.facebook.com",
+            "referer": "https://m.facebook.com/?_rdr",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.137 Safari/537.36"
+    }
     
     
     def __init__(self, username, password=''):
@@ -147,28 +158,9 @@ class Facebook:
             password = str(self.user['password'])
         
         # login using requests library
+        payload = { "locale": "en_US", "non_com_login": "", "email": str(self.user['username']), "pass": password, "lsd": "AVo-YSR3"} # TODO: check lsd code
         
-        chromium = {
-            "host": "m.facebook.com",
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "accept-encoding": "gzip,deflate,sdch",
-            "accept-language": "pl-PL,pl;q=0.8,en-US;q=0.6,en;q=0.4",
-            "cache-control": "max-age=0",
-            "content-length": "256",
-            "content-type": "application/x-www-form-urlencoded",
-            "cookie": "reg_fb_gate=https%3A%2F%2Fwww.facebook.com%2F; datr=fCF9U0svgb81q-QjT57Axku7; m_ts=1400709968; reg_fb_ref=https%3A%2F%2Fm.facebook.com%2F; m_pixel_ratio=1",
-            "dnt": "1",
-            "origin": "https://m.facebook.com",
-            "referer": "https://m.facebook.com/?_rdr",
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.137 Safari/537.36"
-        }
-        
-        self.headers = chromium
-        
-        #"locale=en_US&non_com_login=&email="+str(self.user['username'])+"&pass="+password+"&lsd=20TOl"
-        payload = { "locale": "en_US", "non_com_login": "", "email": str(self.user['username']), "pass": password, "lsd": "AVo-YSR3"}
-        
-        post = self.session.post('https://login.facebook.com/login.php?login_attempt=1', data=payload, headers=chromium)
+        post = self.session.post('https://login.facebook.com/login.php?login_attempt=1', data=payload, headers=self.headers)
         
         if "Cookies Required" in post.content:
             print "Error with cookies"
