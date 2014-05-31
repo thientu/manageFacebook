@@ -191,6 +191,12 @@ class Facebook:
     
     
     def getID(self):
+        
+        """
+         Get user's ID
+          @author: Mateusz Warzyński
+          @return: string
+        """
     
         response = self.getContent("https://m.facebook.com", "/home.php")
         soup = BeautifulSoup(response.content)
@@ -275,17 +281,19 @@ class Facebook:
         """
         
         url = "/"+self.user['id']
-        response = self.getContent(url)
+        response = self.getContent('https://m.facebook.com', url)
         
         try:
             soup = BeautifulSoup(response.content)
         except:
             return False
         
+        print soup.prettify()
+        
         items = soup.findAll('a')
         
         for item in items:
-            
+            print item['href']
             if ('timeline/remove/confirm' in item['href']):
                 self.deleteFromTimeline(str(item['href']))
         
@@ -300,19 +308,21 @@ class Facebook:
         """
 
         domain = "m.facebook.com"
-        response = self.getContent(link)
+        response = self.getContent('https://m.facebook.com', link)
         
         try:
             soup = BeautifulSoup(response.content)
         except:
             return False
+        
+        print soup.prettify()
             
         deletes = soup.findAll('a', { 'class' : 'btn btnN' })
         
         for delete in deletes:
         
             print delete['href']
-            self.getContent(delete['href'])
+            self.getContent('https://m.facebook.com', delete['href'])
             return True
         
         hides = soup.findAll('a', { 'class' : 'btn btnC' })
@@ -320,7 +330,7 @@ class Facebook:
         for hide in hides:
             
             print hide['href']
-            self.getContent(hide['href'])
+            self.getContent('https://m.facebook.com', hide['href'])
             return True
         
 
