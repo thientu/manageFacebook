@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 # import libraries
-import requests
-import time
+import urllib2, cookielib
+import httplib, time, socket
 from BeautifulSoup import BeautifulSoup
 import config, json
+import re
+
 
 
 class Facebook:
@@ -21,25 +23,33 @@ class Facebook:
     # control variables
     logged = False
     config = None
-    session = None
     user = {}
-    headers = {
-            "host": "m.facebook.com",
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "accept-encoding": "gzip,deflate,sdch",
-            "accept-language": "pl-PL,pl;q=0.8,en-US;q=0.6,en;q=0.4",
-            "cache-control": "max-age=0",
-            "content-length": "256",
-            "content-type": "application/x-www-form-urlencoded",
-            "cookie": "reg_fb_gate=https%3A%2F%2Fwww.facebook.com%2F; datr=fCF9U0svgb81q-QjT57Axku7; m_ts=1400709968; reg_fb_ref=https%3A%2F%2Fm.facebook.com%2F; m_pixel_ratio=1",
-            "dnt": "1",
-            "origin": "https://m.facebook.com",
-            "referer": "https://m.facebook.com/?_rdr",
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.137 Safari/537.36"
-    }
+    
+    temp = {}
+    
+    # define cookieJar
+    cj = cookielib.CookieJar()
+    
+    # Headers to execute actions
+    headers = dict()
+    headers['accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    headers['accept-charset'] = 'ISO-8859-2,utf-8;q=0.7,*;q=0.3'
+    headers['accept-language'] = 'en-US,en;q=0.8,pl;q=0.6'
+    headers['dnt'] = '1' 
+    headers['host'] = 'm.facebook.com' 
+    headers['method'] = 'GET'      
+    headers['scheme'] = 'https'
+    headers['version'] = 'HTTP/1.1'
+    headers['user-agent'] = 'Mozilla/5.0 (X11; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0'
+    
+    # Headers to login
+    h = [('Referer', 'http://login.facebook.com/login.php'),
+                    ('Content-Type', 'application/x-www-form-urlencoded'),
+                    ('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0')]
+
     
     
-    def __init__(self, username, password=''):
+    def __init__(self, username='', password=''):
     
         """
          Initialize class functionality, connect to Facebook
@@ -50,35 +60,14 @@ class Facebook:
         # init config library
         self.config = config.pantheraConfig()
         
-        # get some data from json config
-        self.user = self.config.getKey(username, json.loads('{ "username": "'+username+'"}'))
-        
-        if not self.createSession():            
-            self.login(password) # login to Facebook / check if already logged
-    
-    
-    def createSession(self):
-        
-        """
-         Creates requests session
-          @author: Mateusz Warzyński
-          @return: bool
-        """
-        
-        self.session = requests.session()
-        
-        try:
-            self.user['cookie'] = json.loads(self.user['cookie'])
-        except:
-            self.user['cookie'] = {}
-        
-        if self.user['cookie']:
+        if len(username) != 0:
+            # get some data from json config
+            self.user = self.config.getKey(username, json.loads('{ "username": "'+username+'"}'))
             
-            if self.isLogged():
-                return True
-        
-        return False
-        
+            # login to Facebook / check if already logged
+            self.login(password)
+    
+    
     
     def isLogged(self):
     
@@ -89,14 +78,17 @@ class Facebook:
         """
     
         # get response from home page
-        response = self.getContent('https://m.facebook.com', '/home.php')
+        response = self.getContent('m.facebook.com', '/home.php')
+        
+        a = response.read()
+        
+        print a
         
         # if there is option to logout, we must be connected
-        if "Logout" in response.content:
+        if "Logout" in a:
             self.logged = True
             return True
-        
-        self.logged = False
+
         return False
     
     
@@ -147,36 +139,49 @@ class Facebook:
           @return: bool
         """
         
-        print "Try to login"
         
-        # reset not valid variables
-        self.user['cookie'] = None
-        self.logged = False
+        print self.user['cookie']
+        self.cj.set_cookie(self.user['cookie'])
+        
+        # check if last used session is still active
+        try:
+            if len(self.user['cookie']) > 0:
+                self.headers['cookie'] = self.user['cookie']
+                self.cj.set_cookie(self.user['cookie'])
+                
+                if self.isLogged():
+                    return True
+        except:
+            self.user['cookie'] = None
+            self.logged = False
         
         # check if password is not empty, otherwise get it from config
         if password is '':
             password = str(self.user['password'])
         
-        # login using requests library
-        payload = { "locale": "en_US", "non_com_login": "", "email": str(self.user['username']), "pass": password, "lsd": "AVo-YSR3"} # TODO: check lsd code
+        # create urllib2 instance to estabilish a connection with Facebook server
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cj))
+        opener.addheaders = self.h
         
-        post = self.session.post('https://login.facebook.com/login.php?login_attempt=1', data=payload, headers=self.headers)
+        # define variables needed to have succussfull results
+        usock = opener.open('http://www.facebook.com')
+        usock = opener.open('https://login.facebook.com/login.php?login_attempt=1', "locale=en_US&non_com_login=&email="+str(self.user['username'])+"&pass="+password+"&lsd=20TOl")
         
-        if "Cookies Required" in post.content:
-            print "Error with cookies"
+        # get html code from response
+        response = usock.read()
         
         # if there is option to logout, we are logged in
-        if "Logout" in post.content:
+        if "Logout" in response:
             
             # create string which contains session cookie 
-            
-            cookie = self.getCookieFromRequestsObject(self.session)
-            print cookie
-            print post.cookies.items()
+            wholeCookie = ''
+            for cookie in self.cj:
+                wholeCookie =  wholeCookie+cookie.name+"="+cookie.value+"; "
+            self.headers['cookie'] = str(wholeCookie)
             
             # set user session variables
             self.user['password'] = str(password)
-            self.user['cookie'] = json.dumps(cookie)
+            self.user['cookie'] = str(wholeCookie)
             self.user['id'] = str(self.getID())
             
             # save them to config
@@ -191,15 +196,9 @@ class Facebook:
     
     
     def getID(self):
-        
-        """
-         Get user's ID
-          @author: Mateusz Warzyński
-          @return: string
-        """
     
-        response = self.getContent("https://m.facebook.com", "/home.php")
-        soup = BeautifulSoup(response.content)
+        response = self.getContent('m.facebook.com', "/home.php")
+        soup = BeautifulSoup(response.read())
         string = soup.prettify()
 
         user = re.findall('"owner":(.*),"_pmc_":', string)
@@ -223,10 +222,11 @@ class Facebook:
         else:
             url = link
     
-        response = self.getContent(url)
+        domain = "m.facebook.com"
+        response = self.getContent(domain, url)
     
         try:
-            soup = BeautifulSoup(response.content)
+            soup = BeautifulSoup(response.read())
         except:
             return False
         
@@ -235,19 +235,19 @@ class Facebook:
         for item in firstItems:
             
             if ('action=remove_content' in str(item['href'])):
-                self.getContent(item['href'])
+                self.getContent(domain, item['href'])
                 print item['href']
             
             if ('action=remove_comment' in str(item['href'])):
-                self.getContent(item['href'])
+                self.getContent(domain, item['href'])
                 print item['href']
             
             if ('action=unlike' in str(item['href'])):
-                self.getContent(item['href'])
+                self.getContent(domain, item['href'])
                 print item['href']
             
             if ('action=hide' in str(item['href'])):
-                self.getContent(item['href'])
+                self.getContent(domain, item['href'])
                 print item['href']
         
         sectionContents = soup.findAll('a')
@@ -280,20 +280,19 @@ class Facebook:
           @return: null
         """
         
+        domain = "m.facebook.com"
         url = "/"+self.user['id']
-        response = self.getContent('https://m.facebook.com', url)
+        response = self.getContent(domain, url)
         
         try:
-            soup = BeautifulSoup(response.content)
+            soup = BeautifulSoup(response.read())
         except:
             return False
-        
-        print soup.prettify()
         
         items = soup.findAll('a')
         
         for item in items:
-            print item['href']
+            
             if ('timeline/remove/confirm' in item['href']):
                 self.deleteFromTimeline(str(item['href']))
         
@@ -308,21 +307,19 @@ class Facebook:
         """
 
         domain = "m.facebook.com"
-        response = self.getContent('https://m.facebook.com', link)
+        response = self.getContent(domain, link)
         
         try:
-            soup = BeautifulSoup(response.content)
+            soup = BeautifulSoup(response.read())
         except:
             return False
-        
-        print soup.prettify()
             
         deletes = soup.findAll('a', { 'class' : 'btn btnN' })
         
         for delete in deletes:
         
             print delete['href']
-            self.getContent('https://m.facebook.com', delete['href'])
+            self.getContent(domain, delete['href'])
             return True
         
         hides = soup.findAll('a', { 'class' : 'btn btnC' })
@@ -330,7 +327,7 @@ class Facebook:
         for hide in hides:
             
             print hide['href']
-            self.getContent('https://m.facebook.com', hide['href'])
+            self.getContent(domain, hide['href'])
             return True
         
 
@@ -344,8 +341,8 @@ class Facebook:
         """
     
         # get form to post a new content
-        response = self.getContent('/home.php')
-        soup = BeautifulSoup(response.content)
+        response = self.getContent('m.facebook.com', '/home.php')
+        soup = BeautifulSoup(response.read())
         
         # parse html, get token
         token = soup.findAll('input', { "name" : "fb_dtsg" })
@@ -359,16 +356,25 @@ class Facebook:
         """
          Get url, return html response!
           @author: Mateusz Warzyński
+          @param: domain (string), eg. 'facebook.com'
           @param: url (string) eg. '/home.php'
           @return: string
         """
         
         # create connection to domain+url using httplib library
         try:
-            return self.session.get(domain+url, cookies=self.user['cookie'])
+            connection = httplib.HTTPSConnection(domain, 443, timeout=10)
+            connection.request("GET", url, headers=self.headers)
+            response = connection.getresponse()
+            
+            # check if response is correct
+            if self.checkResponse(response):
+                return response
         
-        except e:
-            return None
+        # display error and return empty string
+        except (httplib.HTTPException, socket.error) as ex:
+            print "Error: %s" % ex
+            return ''
     
     
     
@@ -394,9 +400,11 @@ class Facebook:
           @return: string
         """
     
-        postResponse = self.session.post(url, data, headers=self.headers, cookies=self.user['cookie'])
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cj))
+        opener.addheaders = self.h
+        usock = opener.open(str(url), str(data))
         
-        return postResponse.content
+        return usock.read()
     
     
     
@@ -411,14 +419,14 @@ class Facebook:
         """
     
         import re # we don't need this library every time we are using Facebook class
-                    # therefore I imported this here
+                    # therefore I imported it here
         
         # check if there are any pokes
-        response = self.getContent('https://m.facebook.com', '/pokes')
+        response = self.getContent('m.facebook.com', '/pokes')
         
         # parse html code with BeautifulSoup, get pokes as array items
-        soup = BeautifulSoup(response.content)
-        links = soup.findAll('a', { "class" : "_56bz _56bs _56bu" })
+        soup = BeautifulSoup(response.read())
+        links = soup.findAll('a', { "class" : "touchable _56bz _56bs _56bu" })
         
         # let's poke our opponents
         for a in range(len(links)):
@@ -433,16 +441,14 @@ class Facebook:
             # get friend ID
             user = re.findall(r'\&poke_target=(.*?)\&ext=', url2)
             
-            print user
-            
             # check if our friend is set in array
-            if user not in toPoke and len(toPoke) > 0:
+            if user not in toPoke:
                 continue
                             
             # check if link is correct
             if str(url2[0:15]) == '/pokes/inline/?':
                 # poke!
-                self.getContent('https://m.facebook.com', str(url2))
+                self.getContent('m.facebook.com', str(url2))
                 
                 # optionally send message
                 if message is not '':
@@ -467,23 +473,17 @@ class Facebook:
             return False
         
         # get html code with form to send new messages
-        response = self.getContent('https://m.facebook.com', "/messages/compose/?ids="+str(userId))
-        soup = BeautifulSoup(response.content)
+        response = self.getContent('m.facebook.com', "/messages/compose/?ids="+str(userId))
+        soup = BeautifulSoup(response.read())
         
         # parse code, find token
         token = soup.findAll('input', { "name" : "fb_dtsg" })
         
         # create appropiate POST query
-        query = {
-            "ids["+userId+"]": userId,
-            "body": message,
-            "Send": "Send",
-            "fb_dtsg": str(token[0]['value']),
-            "charset_test": "'€,´,€,´,水,Д,Є"
-        }
+        data = "ids["+userId+"]="+userId+"&body="+message+"&Send=Send&fb_dtsg="+str(token[0]['value'])+"&charset_test='€,´,€,´,水,Д,Є"
         
         # send message
-        response = self.requestPOST('https://m.facebook.com/messages/send/?icm=1', query)
+        response = self.requestPOST('https://m.facebook.com/messages/send/?icm=1', data)
         
         # return bool, depends of what Facebook returned
         if message[0:5] in response:
@@ -507,27 +507,21 @@ class Facebook:
             return False
         
         # get form to post a new content
-        response = self.getContent('https://m.facebook.com', '/home.php')
-        soup = BeautifulSoup(response.content)
+        response = self.getContent('m.facebook.com', '/home.php')
+        soup = BeautifulSoup(response.read())
         
         # parse html, get token
         token = soup.findAll('input', { "name" : "fb_dtsg" })
         privacy = soup.findAll('input', { "name" : "privacy" })
         
         # create POST query
-        query = {
-            "status": message,
-            "fb_dtsg": str(token[0]['value']),
-            "charset_test": "'€,´,€,´,水,Д,Є",
-            "update": "Share",
-            "privacy": str(privacy[0]['value'])            
-        }
+        data = "status="+message+"&fb_dtsg="+str(token[0]['value'])+"&charset_test='€,´,€,´,水,Д,Є&update=Share&privacy="+str(privacy[0]['value'])
         
         # post to the wall!
-        response = self.requestPOST('https://m.facebook.com/a/home.php', query)
+        response = self.requestPOST('https://m.facebook.com/a/home.php', data)
         
         # return bool, depends on what Facebook returned
-        if message[0:5] in response.content:
+        if message[0:5] in response:
             return True
         
         return False
@@ -554,8 +548,8 @@ class Facebook:
         while countSentRequests < amount:
             
             # get people that I may potentionally know
-            response = self.getContent('https://m.facebook.com', "/findfriends/browser/?fb_ref=swp&tid=u_0_0&__ajax__=")
-            resp = response.content
+            response = self.getContent('m.facebook.com', "/findfriends/browser/?fb_ref=swp&tid=u_0_0&__ajax__=")
+            resp = response.read()
             
             # we got list in ajax, parse it using json library
             ajaxData = json.loads(resp[9:])
@@ -585,10 +579,11 @@ class Facebook:
                     continue
                 
                 # send request!
-                response = self.getContent('https://m.facebook.com', str(urlAdd))
+                response = self.getContent('m.facebook.com', str(urlAdd))
                 
                 # get reponse, change referer (may help to avoid banning)
-                responseBody = response.content
+                responseBody = response.read()
+                self.headers['referer'] = response.getheader('location')
                 
                 # check if got error, compare with popular messages
                 if "Friend requests are for connecting with people you know well" in responseBody:
@@ -607,19 +602,21 @@ class Facebook:
         return countSentRequests
     
     
-    
-    def getCookieFromRequestsObject(self, object):
+    def getPosts(self, uid):
         
         """
-         Return requests cookies as dict
+         Get posts from given uid
           @author: Mateusz Warzyński
-          @param: requests object
-          @return: dict
+          @return: array
         """
         
-        cookies = {}
+        domain = "m.facebook.com"
+        response = self.getContent(domain, uid)
         
-        for k, v in object.cookies.items():
-            cookies[k] = v
-            
-        return cookies
+        try:
+            soup = BeautifulSoup(response.read())
+        except:
+            return False
+        
+        return soup
+        
