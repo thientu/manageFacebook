@@ -150,8 +150,6 @@ class Facebook:
           @return: bool
         """
         
-        print "Try to login"
-        
         # reset not valid variables
         self.user['cookie'] = None
         self.logged = False
@@ -174,8 +172,7 @@ class Facebook:
             # create string which contains session cookie 
             
             cookie = self.getCookieFromRequestsObject(self.session)
-            print cookie
-            print post.cookies.items()
+            #print post.cookies.items()
             
             # set user session variables
             self.user['password'] = str(password)
@@ -295,7 +292,7 @@ class Facebook:
         except:
             return False
         
-        print soup.prettify()
+        #print soup.prettify()
         
         items = soup.findAll('a')
         
@@ -322,7 +319,7 @@ class Facebook:
         except:
             return False
         
-        print soup.prettify()
+        #print soup.prettify()
             
         deletes = soup.findAll('a', { 'class' : 'btn btnN' })
         
@@ -439,8 +436,6 @@ class Facebook:
             
             # get friend ID
             user = re.findall(r'\&poke_target=(.*?)\&ext=', url2)
-            
-            print user
             
             # check if our friend is set in array
             if user not in toPoke and len(toPoke) > 0:
@@ -694,7 +689,6 @@ class Facebook:
         
         import datetime
         
-        print s
         if 'Yesterday' in s:
             s = '1 days ago'
 
