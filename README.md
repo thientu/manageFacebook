@@ -48,4 +48,7 @@ while True:
 """ Delete ~90% of your activity """
 while True:
     f.deleteActivity()
+    
+""" Get posts from given site (uid) """
+posts = f.getPosts('/uid', iteration=10)
 ```
