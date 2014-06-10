@@ -367,7 +367,7 @@ class Facebook:
           @return: string
         """
         
-        # create connection to domain+url using httplib library
+        # create connection to domain+url using requests library
         try:
             return self.session.get(domain+url, cookies=self.user['cookie'])
         
@@ -632,7 +632,7 @@ class Facebook:
         """
          Get posts from given uid
           @author: Mateusz Warzyński
-          @param: string uid, id to page/user
+          @param: string uid, id to page
           @return: dict
         """
         
@@ -648,19 +648,36 @@ class Facebook:
         posts = feed[0].findAll('div', {'class': "_55wo"})
         
         for post in posts:
-            #print post.prettify()
+            
+            # date
             dateDiv = post.findAll('div', {'class': 'tlHeaderMetadata'})
             date = dateDiv[0].find('span', {'class': 'mfss'})
+            datetime = filter(lambda x: x in string.printable, date.text)
+            
+            # text
             text = post.findAll('span', {'class': 'tlActorText'})
             
-            datetime = filter(lambda x: x in string.printable, date.text)
+            # content
+            content = post.find('div', {'class': 'tlUnitContent'})
+            
+            # get linkCaption i linkTitle
+            try:
+                linkTitle = content.div.div.div.text.encode('utf-8')
+                linkCaption = content.div.div.div.span.text.encode('utf-8')
+                linkTitle.replace(linkCaption, '')
+            except:
+                linkTitle = ''
+                linkCaption = ''
             
             # self.getDateTime(datetime).isoformat(' ')
             
             if len(text):
                 a = {}
-                a['text'] = text[0].text
-                a['date'] = datetime 
+                a['content'] = text[0].text.encode('utf-8')
+                a['date'] = datetime
+                a['linkImage'] = content.img['src']
+                a['linkTitle'] = linkTitle
+                a['linkCaption'] = linkCaption 
                 array.append(a)
         
         if self.i == iteration:
