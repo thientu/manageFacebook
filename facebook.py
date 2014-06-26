@@ -6,6 +6,9 @@ import requests
 import time
 from BeautifulSoup import BeautifulSoup
 import config, json
+import datetime
+import re
+import string
 
 
 class Facebook:
@@ -413,9 +416,6 @@ class Facebook:
           @param: message (string), send a message to poked friend back (eg. 'I will win the poke war!')
           @return: bool
         """
-    
-        import re # we don't need this library every time we are using Facebook class
-                    # therefore I imported this here
         
         # check if there are any pokes
         response = self.getContent('https://m.facebook.com', '/pokes')
@@ -636,8 +636,6 @@ class Facebook:
           @return: dict
         """
         
-        import string
-        
         array = []
         
         response = self.getContent("https://m.facebook.com", str(url))
@@ -703,8 +701,6 @@ class Facebook:
           @param: string s, "x days ago"
           @return: datetime
         """
-        
-        import datetime
         
         if 'Yesterday' in s:
             s = '1 days ago'
