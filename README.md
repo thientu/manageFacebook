@@ -8,7 +8,7 @@ Python is used, because of its beauty of coding. I did my best to keep everythin
 
 ## Login ##
 
-First usage must contain a password as a second argument. If login process will finish successfully, your password will be storage in *config.json* file.
+First usage must contain a password as a second argument. If login process will finish successfully, your password will be storaged in *config.json* file.
 Next time only username is required.
 
 ```python
