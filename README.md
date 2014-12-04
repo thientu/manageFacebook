@@ -1,6 +1,6 @@
 # manageFacebook #
 
-I want to create simple Facebook class which allows to manage Facebook account from console.
+Project allows to manage Facebook account from console. There are several methods you may appreciate.
 Code is simulating *human being* to avoid banning.
 Python is used, because of its beauty of coding. I did my best to keep everything clear and readable.
 
